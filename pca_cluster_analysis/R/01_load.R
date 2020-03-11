@@ -5,20 +5,25 @@ rm(list = ls())
 # Load libraries
 # ------------------------------------------------------------------------------
 library("tidyverse")
+library("datamicroarray")
 
 # Define functions
 # ------------------------------------------------------------------------------
-source(file = "R/99_project_functions.R")
+source(file = "pca_cluster_analysis/R/99_project_functions.R")
 
 # Load data
 # ------------------------------------------------------------------------------
-my_data_raw <- read_tsv(file = "data/_raw/my_raw_data.tsv")
+data("gravier", package = "datamicroarray")
 
 # Wrangle data
 # ------------------------------------------------------------------------------
-my_data <- my_data_raw # %>% ...
+set.seed(676571)
+cancer_data <- mutate(as_tibble(pluck(gravier, "x")), 
+                      y = pluck(gravier, "y"), 
+                      pt_id = 1:length(pluck(gravier, "y")), 
+                      age = round(rnorm(length(pluck(gravier, "y")), mean = 55, sd = 10), 1))
+cancer_data <- rename(cancer_data, event_label = y)
 
 # Write data
 # ------------------------------------------------------------------------------
-write_tsv(x = my_data,
-          path = "data/01_my_data.tsv")
+write.csv(cancer_data, "pca_cluster_analysis/data/01_gravier_data.csv", row.names=FALSE)

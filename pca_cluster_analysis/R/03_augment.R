@@ -8,17 +8,16 @@ library("tidyverse")
 
 # Define functions
 # ------------------------------------------------------------------------------
-source(file = "R/99_project_functions.R")
+source(file = "pca_cluster_analysis/R/99_project_functions.R")
 
 # Load data
 # ------------------------------------------------------------------------------
-my_data_clean <- read_tsv(file = "data/02_my_data_clean.tsv")
+cancer_data <- read_csv(file = "pca_cluster_analysis/data/01_gravier_data.csv")
 
 # Wrangle data
 # ------------------------------------------------------------------------------
-my_data_clean_aug <- my_data_clean # %>% ...
+cancer_data$age_group <- cut(cancer_data$age, breaks = seq(10, 100, by = 10))
 
 # Write data
 # ------------------------------------------------------------------------------
-write_tsv(x = my_data_clean_aug,
-          path = "data/03_my_data_clean_aug.tsv")
+write.csv(cancer_data,"pca_cluster_analysis/data/03_gravier_data_aug.csv", row.names=FALSE)
