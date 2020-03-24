@@ -1,0 +1,95 @@
+#Prepare data set
+nn_dat = iris %>% as_tibble %>%
+  rename(sepal_l_feat = Sepal.Length,
+         sepal_w_feat = Sepal.Width,
+         petal_l_feat = Petal.Length,
+         petal_w_feat = Petal.Width) %>%
+  mutate(class_num = as.numeric(Species) - 1, # factor, so = 0, 1, 2
+         class_label = Species)
+nn_dat %>% head(3)
+
+# Split data set in training and test data sets
+
+test_f = 0.20
+nn_dat = nn_dat %>%
+  mutate(partition = sample(x = c('train','test'),
+                            size = nrow(.),
+                            replace = TRUE,
+                            prob = c(1 - test_f, test_f)))
+nn_dat %>% count(partition)
+
+# Start training based on the partition
+
+x_train = nn_dat %>%
+  filter(partition == 'train') %>%
+  select(contains("feat")) %>%
+  as.matrix
+y_train = nn_dat %>%
+  filter(partition == 'train') %>%
+  pull(class_num) %>%
+  to_categorical(3)
+
+x_test = nn_dat %>%
+  filter(partition == 'test') %>%
+  select(contains("feat")) %>%
+  as.matrix
+y_test = nn_dat %>%
+  filter(partition == 'test') %>%
+  pull(class_num) %>%
+  to_categorical(3)
+
+# Define the model
+model = keras_model_sequential() %>% 
+  layer_dense(units = 4, activation = 'relu', input_shape = 4) %>% 
+  layer_dense(units = 3, activation = 'softmax')
+
+#Compile the model
+
+model %>%
+  compile(loss = 'categorical_crossentropy',
+          optimizer = optimizer_rmsprop(),
+          metrics = c('accuracy')
+  )
+
+# Get summary of the model
+model %>%
+  summary
+
+# Fit model and save the training process
+history = model %>%
+  fit(x = x_train,
+      y = y_train,
+      epochs = 200,
+      batch_size = 20,
+      validation_split = 0
+  )
+ 
+# Plot the training process
+plot(history)
+
+
+# Evaluation of the model
+perf = model %>% evaluate(x_test, y_test)
+perf
+
+# Augment the nn_dat for plotting
+
+plot_dat = nn_dat %>%
+  filter(partition == 'test') %>%
+  mutate(class_num = factor(class_num),
+         y_pred = factor(predict_classes(model, x_test)),
+         Correct = factor(ifelse(class_num == y_pred, "Yes", "No")))
+plot_dat %>% select(-contains("feat")) %>% head(3)
+
+# Plot the confusion matrix
+
+title     = "Classification Performance of Artificial Neural Network"
+sub_title = str_c("Accuracy = ", round(perf$acc, 3) * 100, "%")
+x_lab     = "True iris class"
+y_lab     = "Predicted iris class"
+plot_dat %>% ggplot(aes(x = class_num, y = y_pred, colour = Correct)) +
+  geom_jitter() +
+  scale_x_discrete(labels = levels(nn_dat$class_label)) +
+  scale_y_discrete(labels = levels(nn_dat$class_label)) +
+  theme_bw() +
+  labs(title = title, subtitle = sub_title, x = x_lab, y = y_lab)
